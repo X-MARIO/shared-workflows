@@ -4,7 +4,6 @@ name: Reusable Deploy
 
 on:
   workflow_call:
-    # Определяем входные параметры, которые будет принимать этот воркфлоу
     inputs:
       environment_name:
         required: true
@@ -18,7 +17,6 @@ on:
       compose_file:
         required: true
         type: string
-    # Определяем секреты, которые мы ожидаем получить от вызывающего воркфлоу
     secrets:
       remote_host:
         required: true
