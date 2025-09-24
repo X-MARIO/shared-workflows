@@ -40,6 +40,8 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
 
+      # Шаг 1: Собираем образ и экспортируем его как tar-архив для сканирования.
+      # На этом шаге образ НЕ публикуется.
       - name: Build and export to Docker
         uses: docker/build-push-action@v5
         with:
@@ -49,7 +51,12 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=docker,dest=/tmp/image.tar
+          # Включаем кеширование для этого шага
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
+      # Шаг 2: Сканируем созданный образ на уязвимости.
+      # Этот шаг остается без изменений, он критически важен.
       - name: Scan image for vulnerabilities with Trivy
         uses: aquasecurity/trivy-action@master
         with:
@@ -59,12 +66,17 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
 
+      # Шаг 3: Публикуем образ, только если это не Pull Request.
+      # Этот шаг использует кеш, созданный на Шаге 1, чтобы не пересобирать всё заново.
       - name: Push Docker image to GHCR
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/backend/Dockerfile
-          push: true
+          push: true # Здесь происходит публикация
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Также используем кеширование
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
